@@ -1,0 +1,49 @@
+requests模块
+    -urllib模块
+    -requests模块
+
+requests模块：python中原生的一款基于网络请求的模块，功能非常强大，简单便捷，效率极高。
+作用：模拟浏览器发请求。
+
+如何使用: (requests模块的编码流程)
+    -指定url
+        -UA伪装
+        -请求参数的处理
+    -发起请求
+    -获取响应请求
+    -持久化存储
+
+环境安装：
+    pip install requests
+
+实战编码：
+    爬取搜狗首页的页面数据
+    -需求：爬取搜狗指定词条对应的搜索结果页面
+        - UA检测
+        - UA伪装
+    -需求：破解百度翻译
+        - post请求（携带了参数）ajax请求
+        - 在XHR中找到带有参数的数据包
+        - 响应的是一组json数据
+    -需求：爬取豆瓣电影分类排行榜 https://movie.douban.com/ 中的电影详情数据
+        -参数
+    -需求：爬取肯德基餐厅查询http://www.kfc.com.cn/kfccda/index.aspx 中指定地点的餐厅数量
+    -需求：爬取国家药品监督管理总局中基于中华人民共和国化妆品生产许可证相关数据
+        http://scxk.nmpa.gov.cn:81/xk/itownet/allQyxx/allQyxx.jsp
+        -动态加载数据
+        -首页中对应的企业信息数据是通过阿贾克斯请求得到的
+
+        http://scxk.nmpa.gov.cn:81/xk/itownet/portal/dzpz.jsp?id=bc50a93d978148628800f7e76015566f
+        http://scxk.nmpa.gov.cn:81/xk/itownet/portal/dzpz.jsp?id=3e5eb41fcbf244a09956bcc13f368a1e
+        -通过对详情页url的观察发现：
+            -url的域名都是一样的，只有携带的参数不一样
+            -id值可以从首页对应的ajax请求到的json串中获取
+            -域名和id值拼接出一个完整的企业对应的详情页url
+        -详情页中的详情数据也是动态加载出来的
+
+        http://scxk.nmpa.gov.cn:81/xk/itownet/portalAction.do?7QBHXKaZ=0IHyxeAlqEE9eohMAnAV94bYAIpAREHNXyyrbYTanX23qKvPw4SamWkgx0a6kMhnF0x_H5WnBOZVevn3G5qzREG4Q6VG2XTq.9xA5CumpM0p6LVAT4Us9gG
+        http://scxk.nmpa.gov.cn:81/xk/itownet/portalAction.do?7QBHXKaZ=0XslELqlqEhiOSvLA2HZxW4FZ5kXRbK.F5m_7Tj1mCAb967tYCUMhWmd0dVgvTgwbGie0PLGFgqMoiZaYrR0Gmu5vSR0xA7FDw.3jv3IRjV0F79fjnw7ija
+        -观察后发现:
+            -所有的post请求的url都是一样的，只有参数不同
+            -如果我们可以批量获取多家企业的id后，就可以将id和url形成一格完整的详情页对那个的详情数据的ajax请求的url
+
