@@ -1,0 +1,210 @@
+scrapy框架
+
+- 什么是框架?
+    - 就是一个集成了很多功能，并且有很强通用性的一个项目模板。
+
+- 如何学习框架?
+    - 专门学习框架封装的各种功能的详细用法。
+
+- 什么是scrapy?
+    - 爬虫中封装好的一个明星框架。
+      功能：高性能的持久化存储，异步的数据下载，高性能的数据解析操作，分布式
+
+- scrapy框架的基本使用
+    - 环境的安装：
+        - mac or linux：pip install scrapy
+        - windows：
+            pip install wheel
+            下载twisted，地址为https://www.lfd.uci.edu/~gohlke/pythonlibs/#twisted
+            安装twisted：pip install Twisted-17.1.0-cp36-cp36m-win_amd64.whl
+            pip install scrapy
+            测试：在终端里录入scrapy指令，没有报错表示安装成功！
+
+            python3.9之后可以直接pip install scrapy
+    - 创建一个工程：scrapy startproject xxxPro
+    - cd xxxPro
+    - 在spiders子目录中创建一个爬虫文件
+        - scrapy genspider spiderName www.xxx.com
+    - 执行工程：
+        - scarpy crawl spiderName 加上--nolog可以不显示日志输出
+          建议在setting中加上 LOG_LEVEL = "WARNING"
+
+- scrapy数据解析
+
+- scrapy持久化存储
+    - 基于终端指令：
+        - 要求：只可以将parse方法的返回值存储到本地的文本文件中
+        - 注意：持久化存储对应的文本文件类型只可以为：json jsonlines jl csv xml marshal pickle
+        - 指令：scrapy crawl xxx -o filepath （不指定默认在当前文件夹里）
+        - 好处：简洁高效便捷
+        - 缺点：局限性比较强（数据只可以存储到指定后缀的文本文件中）
+
+    - 基于管道：
+        - 编码流程：
+            - 数据解析
+            - 在item类中定义相关的属性
+            - 将解析的数据存储封装到item类型的对象中
+            - 将item类型的对象提交给管道进行持久化存储的操作
+            - 在管道类的process_item要将其接收到的item对象中存储的数据进行持久化存储操作。
+            - 在配置文件中开启管道
+        - 好处：
+            - 通用性强。
+        编码流程些许繁琐
+
+    -面试题：将爬取到的数据一份存储到本地一份存储到数据库。如何实现？
+        - 管道文件中的一个管道类对应的是将数据存储到一种平台
+        - 爬虫文件提交的item只会给管道文件中第一个被执行的管道类接收
+        - process_item中的return item表示将item传递给下一个即将被执行的管道类
+
+- 基于spider的全站数据爬取
+    - 就是将网站中某个板块下的全部页码对应的页面数据进行爬取
+    - 爬取网站中的照片名称 https://pic.netbian.com/4kmeinv/
+    - 实现方式：
+        - 将所有页码的url添加到start_urls列表 （不推荐）
+        - 自行手动进行请求发送（推荐）
+            - 手动请求发送：
+                yield scrapy.Request(url=new_url,callback=self.parse)
+    
+- 五大核心组件
+    1. Spider(爬虫类): 
+        - <1> 产生url，对url进行请求发送
+        - <2> 进行数据解析
+        - <3> 将请求对象发送给引擎
+        - <12> 将item返回给引擎
+
+    2. 引擎：
+        - <4> 把请求对象给调度器
+        - <8> 将调度器返回的请求对象发送给下载器
+        - <11> 将response发送给spider。（parse方法）
+        - <13> 将item发送给管道
+            用于数据流处理，数据流一定要被引擎处理
+            引擎可以触发事物：
+                根据不同的数据流判断做出什么处理
+
+    3. 调度器：
+        - 过滤器:
+            - <5> 将请求对象进行去重
+            - <6> 将经过去重的请求对象提交到队列中
+        - 队列：
+            - <7> 调度器从队列中请求对象发送给引擎
+    
+    4. 下载器：
+        - <9> 去互联网进行数据下载
+        - <10> 下载器将response发送给引擎
+            基于异步实现
+
+    5. 管道（Pipelines）:
+        - <14> 持久化存储
+
+- 请求传参
+    - 使用场景：如果爬取的解析数据不在同一张页面中。（深度爬取）
+    - 需求：爬取boss直聘的岗位名称和岗位描述
+
+- 图片数据爬取之imagePipeLine
+    - 基于scrapy爬取字符串类型的数据区别？
+        - 字符串：只需要基于xpath进行解析且提交管道进行持久化存储
+        - 图片：xpath解析出src属性值。单独地对图片地址发起请求获取图片二进制类型的数据。
+
+    - ImagePipeLine：
+        - 只需要将image的src属性值进行解析，提交到管道，管道就会对图片的src进行请求发送，
+          获取图片的二进制数据，并且还会帮我们进行持久化存储。
+    - 需求：爬取 https://pic.netbian.com/4kmeinv/ 图片
+    - 使用流程：
+        - 进行数据解析（图片地址）
+        - 将存储图片地址的item提交到指定的管道类
+        - 在管道文件中自定制一个基于pipeline的管道类：
+            - get_media_request()
+            - file_path()
+            - item_completed()
+        - 在配置文件中：
+            - 指定图片存储的路径： IMAGES_STORE = './imgs'
+            - 指定开启的管道
+
+- 中间件
+    - 引擎和下载器之间有下载中间件：
+        - 作用：批量拦截到整个工程中发起的所有请求和响应
+        - 拦截请求：
+            - UA伪装: process_request
+            - 代理IP的设定: process_exception:return request
+        - 拦截响应:
+            - 篡改响应数据，响应对象
+            _ 需求：爬取网易新闻中的新闻数据 https://news.163.com/ 标题和内容
+                - 1.通过网易新闻的首页解析出几个板块对应的详情页的url
+                （判断是否为动态加载：打开抓包工具，查看response里面是否可以搜索到改内容
+                 能搜索到意味着不是动态加载，例如此次需求）。
+                - 2.每一个板块对印度个新闻标题都是动态加载出来的。
+                - 3.通过解析出每一条新闻详情页的url获取详情页的页面源码，解析出新闻内容。
+
+    - 引擎和Spider中间有爬虫中间件
+
+- CrawlSpider: Spider的一个子类
+    - 全站数据爬取的方式
+        - 基于Spider:手动请求发送
+        - 基于crawlspider
+    - CrawlSpider的使用：
+        - 创建一个工程
+        - cd xxx
+        - 创建爬虫文件：（CrawlSpider）:
+            - scrapy genspider -t crawl xxx www.xxx.com
+            - 链接提取器：
+                - 作用：根据指定的规则进行链接的提取
+            - 规则解析器：
+                - 作用：将链接提取器提取到的链接进行指定规则（Callback）的解析
+        #需求：爬取阳光政务网中所有的政务新闻标题，编号，新闻内容，标号
+            - 分析：爬取的数据没有在同一张页面中。
+            - 1.可以使用链接提取器提取所有的页码链接
+            - 2.让链接提取器提取所有的新闻详情页的链接
+
+- 分布式爬虫
+    - 概念：我们需要搭建一个分布式的机群，让其对一组资源进行分布式联合爬取
+    - 作用：提升爬取数据的效率
+
+    - 如何实现分布式？
+        - 安装一个叫scrapy-redis的组件
+        - 原生的scrapy是不可以实现分布式爬虫的，必须要让scrapy结合scrapy-redis组件一起实现分布式爬虫
+        - 为什么原生的scrapy不可以实现分布式？
+            - 调度器不可以被分布式机群共享
+            - 管道不可以被分布式机群共享
+        - scrapy=redis组件作用：
+            - 可以给原生scrapy框架提供可以被共享的管道和调度器
+        - 实现流程：
+            - 创建一个工程
+            - 创建一个基于crawlspider的爬虫文件
+            - 修改当前的爬虫文件：
+                - 导入 from scrapy_redis.spiders import RedisCrawlSpider
+                - 将start_urls allow_domains进行注释
+                - 添加一个新属性: redis_key = "sun"可以被共享的调度器队列的名称
+                - 编写数据解析相关的操作
+                - 将当前爬虫类的父类修改成RedisCrawlSpider
+            - 修改配置文件settings：
+                - 指定使用可以被共享的管道：
+                    ITEM_PIPELINES = {
+    "scrapy_redis.pipelines.RedisPipeline": 400,
+}
+                - 指定调度器：
+                    #增加了一个去重容器类的配置，作用使用Redis的set集合来存储请求的指纹数据，从而实现请求去重的持久化
+                    DUPEFILTER_CLASS = "scrapy_redis.dupefilter.RFPDupeFilter"
+                    #增加了一个调度器类的配置，作用：把待爬取的请求存储到Redis的set集合中，从而实现请求的持久化
+                    SCHEDULER = "scrapy_redis.scheduler.Scheduler"
+                    #配置调度器是否需要持久化，也就是爬取的数据是否要保存
+                    SCHEDULER_PERSIST = True
+                -指定redis服务器：
+
+            - redis相关操作配置：
+                - 配置redis配置文件：
+                    - Linux/Mac: redis.conf
+                    - windows: redis.windows.conf
+                    - 打开配置文件修改:
+                        - 将band127.0.0.1进行删除或者注释
+                        - 关闭保护模式 protect-mode yes改为protect-mode no
+                - 结合着配置文件开启redis服务
+                    - redis-server 配置redis配置文件
+                - 启动客户端：
+                    - redis-cli
+            - 执行工程：
+                - scrapy runspider xxx.python3
+            - 向调度器的队列中放入一个起始url：
+                - 调度器的队列在redis的客户端中
+                    - lpush xxx www.xxx.com
+            - 爬取到的数据存储在了redis的proName:items这个数据结构中
+            
